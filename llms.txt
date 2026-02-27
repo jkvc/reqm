@@ -1,0 +1,137 @@
+# reqm — Ridiculously Easy Quant Manager
+
+Config-based aliased object factory with enforced interfaces, built on Hydra.
+
+## The one-line pitch
+
+`reqm.get("alias")` — same call in a notebook, a FastAPI endpoint, a test, or a
+batch job. No framework ceremony, no call site changes when you swap implementations.
+
+## Installation
+
+```bash
+pip install reqm
+```
+
+## Minimal working example
+
+```python
+# 1. Define your interface (what all implementations must do)
+from reqm import Quant
+
+class Summarizer(Quant):
+    def __init__(self, model_name: str, max_tokens: int):
+        self.model = load_model(model_name)
+        self.max_tokens = max_tokens
+
+    def dummy_inputs(self) -> dict:
+        # reqm calls this at build time to verify the Quant actually runs
+        return {"text": "The quick brown fox jumps over the lazy dog."}
+
+    def __call__(self, text: str) -> str:
+        return self.model.summarize(text, max_tokens=self.max_tokens)
+
+
+# 2. Write a config file (conf/summarizer/prod.yaml)
+# _target_: myproject.models.Summarizer
+# model_name: gpt-4o
+# max_tokens: 512
+
+
+# 3. Register the alias
+import reqm
+reqm.register("summarizer/prod", "conf/summarizer/prod.yaml", Summarizer)
+
+
+# 4. Use it — this line never changes, no matter what's behind the alias
+model = reqm.get("summarizer/prod")
+result = model(text="Explain quantum entanglement simply.")
+```
+
+## Key concepts
+
+### Quant
+The unit reqm builds and manages. Subclass `reqm.Quant` and implement:
+- `__call__(self, **kwargs)` — the inference/computation
+- `dummy_inputs(self) -> dict` — example inputs used for build-time sanity check
+
+`dummy_inputs` is what makes a Quant **auditable**: reqm calls it with your
+own example inputs when you call `reqm.get()`. If it fails, it fails immediately
+with a clear error, not silently in production.
+
+### Registry
+Maps alias strings to (config_path, interface_class) pairs. Register once,
+retrieve anywhere. Aliases can be any string; convention is `"category/variant"`.
+
+### Config files
+Standard Hydra YAML. The `_target_` key points to your class.
+All other keys become constructor arguments.
+
+```yaml
+# conf/summarizer/prod.yaml
+_target_: myproject.models.Summarizer
+model_name: gpt-4o
+max_tokens: 512
+```
+
+## The R2P (research-to-production) pattern
+
+Register multiple aliases pointing to different implementations of the same interface.
+Swap by changing one string — the call site never changes.
+
+```python
+reqm.register("summarizer/prod",         "conf/summarizer/prod.yaml",         Summarizer)
+reqm.register("summarizer/fast",         "conf/summarizer/fast.yaml",         Summarizer)
+reqm.register("summarizer/experiment_v3","conf/summarizer/experiment_v3.yaml", Summarizer)
+
+# These three lines are identical in structure — only the alias changes
+model = reqm.get("summarizer/prod")
+model = reqm.get("summarizer/fast")
+model = reqm.get("summarizer/experiment_v3")
+```
+
+## Public API
+
+```python
+import reqm
+
+# Define your Quant
+class MyQuant(reqm.Quant):
+    ...
+
+# Register
+reqm.register(alias: str, config_path: str, interface: type) -> None
+
+# Retrieve (instantiates, validates interface, runs dummy_inputs)
+reqm.get(alias: str) -> reqm.Quant
+```
+
+## Runnable examples
+
+The package ships with working examples. After `pip install reqm`:
+
+```bash
+python -m reqm.examples.hello_world
+python -m reqm.examples.r2p
+```
+
+Or read them directly:
+- `reqm/examples/hello_world.py` — simplest end-to-end usage
+- `reqm/examples/r2p.py` — research-to-production alias swap pattern
+
+## Why not just Hydra?
+
+Hydra is framework-first — it expects to own your program's entry point.
+reqm is library-first: no `@hydra.main`, no `hydra.initialize()`, no context managers.
+reqm handles all Hydra plumbing internally. You get config-driven instantiation
+without the ceremony.
+
+## Common mistakes
+
+**Don't** call `hydra.initialize()` yourself — reqm handles it.
+
+**Don't** skip `dummy_inputs` — it's not optional. reqm uses it to verify
+your Quant actually runs before you're in production.
+
+**Don't** hardcode constructor args in Python — put them in the YAML config.
+That's the whole point.

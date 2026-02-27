@@ -1,0 +1,25 @@
+[project]
+name = "reqm"
+version = "0.1.0"
+description = "Ridiculously Easy Quant Manager — config-based aliased object factory with enforced interfaces"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.9"
+dependencies = [
+    "hydra-core>=1.3",
+]
+
+[project.urls]
+Homepage = "https://github.com/jkvc/reqm"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/reqm"]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+]
