@@ -5,6 +5,20 @@ For guidance on using reqm in your own project, see `llms.txt` or `README.md`.
 
 ---
 
+## Tech debt policy
+
+Any consciously taken shortcut or design caveat **must** be recorded in `TECH_DEBT.md`
+before the code is committed. Each entry must include:
+- What was skipped or compromised
+- Why (the constraint that forced it)
+- The concrete action needed to repay it
+
+Tech debt that is not recorded does not exist — and will bite us later.
+Reviewing and repaying `TECH_DEBT.md` items is a normal part of the workflow,
+not an afterthought.
+
+---
+
 ## What reqm is
 
 `reqm` (Ridiculously Easy Quant Manager) is a config-based aliased object factory
