@@ -14,17 +14,18 @@ Run with::
     python -m reqm.examples.r2p
 """
 
+import os
 import tempfile
 import textwrap
-import os
+
 import reqm
 from reqm import Quant
 from reqm.overrides_ext import override
 
-
 # ---------------------------------------------------------------------------
 # 1. Define the interface — one ABC, many implementations
 # ---------------------------------------------------------------------------
+
 
 class Summarizer(Quant):
     """Abstract summarizer interface. All variants must implement this.
@@ -46,6 +47,7 @@ class Summarizer(Quant):
 # ---------------------------------------------------------------------------
 # 2. Concrete implementations — in a real project these live in separate files
 # ---------------------------------------------------------------------------
+
 
 class VerboseSummarizer(Summarizer):
     """Summarizes by adding a verbose prefix. Stands in for a large model.
@@ -114,15 +116,14 @@ CONFIGS = {
 # 4. Register all aliases, then swap freely — call site never changes
 # ---------------------------------------------------------------------------
 
+
 def main():
     tmp_files = []
 
     try:
         # Write configs to temp files and register
         for alias, yaml_content in CONFIGS.items():
-            f = tempfile.NamedTemporaryFile(
-                mode="w", suffix=".yaml", delete=False
-            )
+            f = tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False)
             f.write(yaml_content)
             f.close()
             tmp_files.append(f.name)

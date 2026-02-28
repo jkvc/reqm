@@ -4,17 +4,17 @@ Tests for reqm.overrides_ext — allow_any_override, override, final, EnforceOve
 Tests also serve as usage examples for each exported symbol.
 """
 
-import pytest
 from abc import abstractmethod
 from typing import Any
 
-from reqm.overrides_ext import (
-    allow_any_override,
-    override,
-    final,
-    EnforceOverrides,
-)
+import pytest
 
+from reqm.overrides_ext import (
+    EnforceOverrides,
+    allow_any_override,
+    final,
+    override,
+)
 
 # ---------------------------------------------------------------------------
 # allow_any_override

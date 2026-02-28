@@ -12,17 +12,18 @@ Run with::
     python -m reqm.examples.hello_world
 """
 
+import os
 import tempfile
 import textwrap
-import os
+
 import reqm
 from reqm import Quant
 from reqm.overrides_ext import override
 
-
 # ---------------------------------------------------------------------------
 # 1. Define your Quant — subclass Quant and implement __call__ + dummy_inputs
 # ---------------------------------------------------------------------------
+
 
 class Greeter(Quant):
     """A simple Quant that greets a name.
@@ -76,11 +77,10 @@ CONFIG_YAML = textwrap.dedent("""\
 # 3. Register + retrieve + call
 # ---------------------------------------------------------------------------
 
+
 def main():
     # Write config to a temporary file
-    with tempfile.NamedTemporaryFile(
-        mode="w", suffix=".yaml", delete=False
-    ) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
         f.write(CONFIG_YAML)
         config_path = f.name
 

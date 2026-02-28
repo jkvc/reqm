@@ -5,13 +5,12 @@ Tests here also serve as usage examples: each test is a self-contained
 demonstration of how Quant is defined and used.
 """
 
-import pytest
-from abc import ABC
 from typing import Any
 
-from reqm.quant import Quant
-from reqm.overrides_ext import allow_any_override, override, EnforceOverrides
+import pytest
 
+from reqm.overrides_ext import EnforceOverrides, allow_any_override, override
+from reqm.quant import Quant
 
 # ---------------------------------------------------------------------------
 # Minimal concrete implementations used across tests
@@ -187,7 +186,7 @@ def test_dummy_inputs_multiple_sets_all_runnable():
 
 
 def test_quant_is_abstract():
-    """Quant uses ABCMeta (via EnforceOverridesMeta) so abstract methods are enforced."""
+    """Quant uses ABCMeta (via EnforceOverridesMeta) so abstractmethods work."""
     from abc import ABCMeta
 
     assert isinstance(Quant, ABCMeta)

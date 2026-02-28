@@ -22,5 +22,14 @@ packages = ["src/reqm"]
 
 [dependency-groups]
 dev = [
+    "pre-commit>=4.3.0",
     "pytest>=8.0",
+    "ruff>=0.15.4",
 ]
+
+[tool.ruff]
+target-version = "py39"
+src = ["src"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
