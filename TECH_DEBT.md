@@ -28,44 +28,7 @@ since concrete subclasses will now need `@override` on `__call__` and `dummy_inp
 
 ---
 
-## 3. Signature checking is silently skipped for normal `@override` methods
-
-**File:** `src/reqm/overrides_ext.py` → `_PendingOverride.__set_name__`
-
-The vanilla `_override()` uses `sys._getframe()` to find the enclosing class, which
-breaks at the frame depth of `__set_name__`. As a workaround, we skip calling `_override()`
-entirely and just set `method.__override__ = True` manually.
-
-**Consequence:** For methods WITHOUT `@allow_any_override`, vanilla `@override` would have
-checked signature compatibility. We no longer do that. Only the "must use `@override`"
-enforcement from `EnforceOverrides` works; signature compat is not checked at all.
-
-**Action:** Investigate whether `_overrides()` (the internal function in the overrides
-library) can be called with a known super class directly, bypassing frame inspection.
-If yes, call it for the non-`allow_any_override` case. If not, document this limitation
-explicitly in the docstring.
-
----
-
-## 4. `@final` error message names the wrong class
-
-**File:** `src/reqm/overrides_ext.py` → `_PendingOverride.__set_name__`
-
-```python
-raise TypeError(
-    f"'{name}' in '{owner.__name__}' attempts to override a "
-    f"@final method from '{type(parent).__name__}'."  # ← gives "function", not class name
-)
-```
-
-`type(parent).__name__` is `"function"` — not the class that declared `@final`.
-
-**Action:** Walk the MRO to find which base class owns the `@final` method and use
-that class name in the error message instead.
-
----
-
-## 5. `__init__.py` exports nothing yet
+## 3. `__init__.py` exports nothing yet
 
 **File:** `src/reqm/__init__.py`
 
@@ -77,7 +40,7 @@ is not exported from the package. `import reqm` currently gives you nothing.
 
 ---
 
-## 6. Examples don't use `@override`
+## 4. Examples don't use `@override`
 
 **Files:** `src/reqm/examples/hello_world.py`, `src/reqm/examples/r2p.py`
 

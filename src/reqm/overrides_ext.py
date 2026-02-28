@@ -38,13 +38,48 @@ Usage::
         def name(self) -> str: ...                     # same sig — required
 """
 
-import functools
+import sys
 from typing import Any, Callable, TypeVar
 
 from overrides import EnforceOverrides, final
-from overrides import override as _override
+from overrides.overrides import _get_base_classes, _overrides
 
 F = TypeVar("F", bound=Callable[..., Any])
+
+
+def _should_enforce_signature(method: Callable) -> bool:
+    """Decide whether signature checking applies for this override.
+
+    Returns False if the method itself carries ``@allow_any_override``, or if
+    every parent definition of the same method carries it.  Returns True as
+    soon as any parent definition is found *without* the marker.
+
+    Raises:
+        TypeError: If no parent class defines a method with the same name.
+    """
+    if getattr(method, "__allow_any_override__", False):
+        return False
+
+    global_vars = getattr(method, "__globals__", None)
+    if global_vars is None:
+        global_vars = vars(sys.modules[method.__module__])
+
+    found = False
+    for super_class in _get_base_classes(sys._getframe(3), global_vars):
+        parent_method = getattr(super_class, method.__name__, None)
+        if parent_method is None:
+            continue
+        found = True
+        if not getattr(parent_method, "__allow_any_override__", False):
+            return True
+
+    if not found:
+        raise TypeError(
+            f"'{method.__qualname__}' does not override any method in its "
+            f"base classes. Remove @override or check the method name."
+        )
+
+    return False
 
 
 def allow_any_override(method: F) -> F:
@@ -84,74 +119,24 @@ def allow_any_override(method: F) -> F:
     return method
 
 
-class _PendingOverride:
-    """Descriptor that resolves override validation at class-creation time.
-
-    When Python calls ``__set_name__`` during class body execution, we have
-    access to the owner class and its MRO. At that point we check whether the
-    parent method carries ``__allow_any_override__`` and call the appropriate
-    form of ``@override``.
-    """
-
-    def __init__(self, method: Callable) -> None:
-        self._method = method
-        functools.update_wrapper(self, method)  # type: ignore[arg-type]
-        # EnforceOverrides inspects the class namespace before __set_name__
-        # fires. Setting __override__ here ensures it sees a marked override
-        # on the _PendingOverride instance itself, not just the resolved method.
-        self.__override__ = True  # type: ignore[attr-defined]
-
-    def __set_name__(self, owner: type, name: str) -> None:
-        method = self._method
-
-        # Find the parent method via MRO. We do this manually because
-        # _override() uses sys._getframe() to locate the enclosing class,
-        # which gives the wrong frame depth when called from __set_name__.
-        parent = None
-        for base in owner.__mro__[1:]:
-            if name in vars(base):
-                parent = vars(base)[name]
-                break
-
-        if parent is None:
-            raise TypeError(
-                f"'{name}' in '{owner.__name__}' does not override any method "
-                f"in its base classes. Remove @override or check the method name."
-            )
-
-        # Respect @final — raise before installing.
-        if getattr(parent, "__final__", False):
-            raise TypeError(
-                f"'{name}' in '{owner.__name__}' attempts to override a "
-                f"@final method from '{type(parent).__name__}'."
-            )
-
-        # Mark the resolved method for any downstream EnforceOverrides check.
-        method.__override__ = True  # type: ignore[attr-defined]
-
-        # Replace this descriptor with the resolved plain method.
-        # Signature checking is deliberately skipped when the parent has
-        # @allow_any_override; static type checkers handle it at that level.
-        setattr(owner, name, method)
-
 def override(method: F) -> F:
     """Override decorator that respects ``@allow_any_override`` on parent methods.
 
     Drop-in replacement for ``@override`` from the ``overrides`` library.
     Behaviour:
     - If the parent method has ``@allow_any_override``: installs the override
-      without signature validation (``check_signature=False``).
-    - Otherwise: delegates to vanilla ``@override`` with full signature
-      checking (``check_signature=True``).
+      without signature validation.
+    - Otherwise: delegates to vanilla ``_overrides`` with full signature
+      checking.
 
-    Resolution is deferred to class-creation time via ``__set_name__``, so
-    the parent MRO is available when the check runs.
+    Resolution happens at class-body execution time via the ``overrides``
+    library's ``_get_base_classes`` frame introspection.
 
     Args:
         method: The overriding method.
 
     Returns:
-        The resolved override (after ``__set_name__`` fires).
+        The method, marked with ``__override__ = True``.
 
     Raises:
         TypeError: If ``method`` does not override any parent method.
@@ -171,7 +156,10 @@ def override(method: F) -> F:
                 def dummy_inputs(self) -> list[dict[str, Any]]:
                     return [{"text": "hello"}]
     """
-    return _PendingOverride(method)  # type: ignore[return-value]
+    method.__override__ = True  # type: ignore[attr-defined]
+    if _should_enforce_signature(method):
+        _overrides(method, check_signature=True, check_at_runtime=False)
+    return method
 
 
 __all__ = ["allow_any_override", "override", "final", "EnforceOverrides"]
