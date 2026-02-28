@@ -19,6 +19,7 @@ import textwrap
 import os
 import reqm
 from reqm import Quant
+from reqm.overrides_ext import override
 
 
 # ---------------------------------------------------------------------------
@@ -33,9 +34,11 @@ class Summarizer(Quant):
         >>> # or reqm.get("summarizer/prod")
     """
 
+    @override
     def dummy_inputs(self) -> dict:
         return {"text": "The quick brown fox jumps over the lazy dog."}
 
+    @override
     def __call__(self, text: str) -> str:
         raise NotImplementedError
 
@@ -59,6 +62,7 @@ class VerboseSummarizer(Summarizer):
     def __init__(self, prefix: str):
         self.prefix = prefix
 
+    @override
     def __call__(self, text: str) -> str:
         return f"{self.prefix} {text}"
 
@@ -78,6 +82,7 @@ class FastSummarizer(Summarizer):
     def __init__(self, max_words: int):
         self.max_words = max_words
 
+    @override
     def __call__(self, text: str) -> str:
         words = text.split()
         if len(words) <= self.max_words:

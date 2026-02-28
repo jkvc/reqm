@@ -191,12 +191,13 @@ signature change is deliberate, not a mistake.
 
 ```python
 # Base — accepts anything
-class Quant(ABC):
+class Quant(EnforceOverrides):
     @abstractmethod
     @allow_any_override
     def __call__(self, **kwargs) -> Any: ...
 
 # Subclass — narrows to specific API (correct and intended)
 class Summarizer(Quant):
+    @override
     def __call__(self, text: str, max_tokens: int = 512) -> str: ...
 ```

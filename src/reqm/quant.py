@@ -5,35 +5,13 @@ A Quant is the unit reqm builds and manages: a callable with constructor args
 defined in config, and a dummy_inputs method that makes it auditable.
 """
 
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from typing import Any
 
-
-def allow_any_override(method):
-    """Mark an abstract method as allowing override with any signature.
-
-    Used on Quant.__call__ to signal that subclasses may narrow the signature
-    to their specific input API. Without this marker, strict type checkers and
-    linters would flag the signature change as an LSP violation.
-
-    This is not a runtime enforcement mechanism — it is a documentation marker
-    that communicates intent to both humans and tools.
-
-    Examples:
-        >>> class Base(ABC):
-        ...     @abstractmethod
-        ...     @allow_any_override
-        ...     def __call__(self, **kwargs) -> Any: ...
-        ...
-        >>> class Concrete(Base):
-        ...     def __call__(self, text: str) -> str:  # narrowed — intentional
-        ...         return text.upper()
-    """
-    method.__allow_any_override__ = True
-    return method
+from reqm.overrides_ext import EnforceOverrides, allow_any_override
 
 
-class Quant(ABC):
+class Quant(EnforceOverrides):
     """Abstract base class for all reqm Quants.
 
     A Quant is a callable unit managed by reqm. It is:
@@ -53,15 +31,18 @@ class Quant(ABC):
         Define a Quant::
 
             from reqm import Quant
+            from reqm.overrides_ext import override
 
             class Summarizer(Quant):
                 def __init__(self, model_name: str, max_tokens: int):
                     self.model = load_model(model_name)
                     self.max_tokens = max_tokens
 
+                @override
                 def __call__(self, text: str) -> str:
                     return self.model.summarize(text, max_tokens=self.max_tokens)
 
+                @override
                 def dummy_inputs(self) -> list[dict[str, Any]]:
                     return [
                         {"text": "The quick brown fox."},
@@ -94,6 +75,7 @@ class Quant(ABC):
             Subclass narrowing the signature::
 
                 class Greeter(Quant):
+                    @override
                     def __call__(self, name: str) -> str:
                         return f"Hello, {name}!"
 

@@ -9,19 +9,23 @@ import pytest
 from abc import ABC
 from typing import Any
 
-from reqm.quant import Quant, allow_any_override
+from reqm.quant import Quant
+from reqm.overrides_ext import allow_any_override, override, EnforceOverrides
 
 
 # ---------------------------------------------------------------------------
 # Minimal concrete implementations used across tests
 # ---------------------------------------------------------------------------
 
+
 class EchoQuant(Quant):
     """Quant that echoes its input back. Simplest valid implementation."""
 
+    @override
     def __call__(self, text: str) -> str:
         return text
 
+    @override
     def dummy_inputs(self) -> list[dict[str, Any]]:
         return [{"text": "hello"}]
 
@@ -33,9 +37,11 @@ class MultiInputQuant(Quant):
         self.prefix = prefix
         self.suffix = suffix
 
+    @override
     def __call__(self, text: str) -> str:
         return f"{self.prefix}{text}{self.suffix}"
 
+    @override
     def dummy_inputs(self) -> list[dict[str, Any]]:
         return [
             {"text": "hello"},
@@ -47,9 +53,11 @@ class MultiInputQuant(Quant):
 class NoArgsCallQuant(Quant):
     """Quant whose __call__ takes no arguments beyond self."""
 
+    @override
     def __call__(self) -> str:
         return "pong"
 
+    @override
     def dummy_inputs(self) -> list[dict[str, Any]]:
         return [{}]
 
@@ -58,6 +66,7 @@ class NoArgsCallQuant(Quant):
 # Quant is abstract — cannot be instantiated directly
 # ---------------------------------------------------------------------------
 
+
 def test_quant_cannot_be_instantiated_directly():
     with pytest.raises(TypeError):
         Quant()
@@ -65,6 +74,7 @@ def test_quant_cannot_be_instantiated_directly():
 
 def test_quant_subclass_without_call_cannot_be_instantiated():
     class MissingCall(Quant):
+        @override
         def dummy_inputs(self) -> list[dict[str, Any]]:
             return [{}]
 
@@ -74,6 +84,7 @@ def test_quant_subclass_without_call_cannot_be_instantiated():
 
 def test_quant_subclass_without_dummy_inputs_cannot_be_instantiated():
     class MissingDummyInputs(Quant):
+        @override
         def __call__(self, **kwargs) -> Any:
             return None
 
@@ -92,6 +103,7 @@ def test_quant_subclass_missing_both_methods_cannot_be_instantiated():
 # ---------------------------------------------------------------------------
 # Concrete subclasses instantiate and call correctly
 # ---------------------------------------------------------------------------
+
 
 def test_echo_quant_returns_input():
     q = EchoQuant()
@@ -121,6 +133,7 @@ def test_no_args_call_quant():
 # ---------------------------------------------------------------------------
 # dummy_inputs returns the right structure
 # ---------------------------------------------------------------------------
+
 
 def test_dummy_inputs_returns_a_list():
     q = EchoQuant()
@@ -169,11 +182,19 @@ def test_dummy_inputs_multiple_sets_all_runnable():
 
 
 # ---------------------------------------------------------------------------
-# Quant is recognized as ABC-derived
+# Quant is recognized as ABC-derived and EnforceOverrides-derived
 # ---------------------------------------------------------------------------
 
-def test_quant_is_abstract_base_class():
-    assert issubclass(Quant, ABC)
+
+def test_quant_is_abstract():
+    """Quant uses ABCMeta (via EnforceOverridesMeta) so abstract methods are enforced."""
+    from abc import ABCMeta
+
+    assert isinstance(Quant, ABCMeta)
+
+
+def test_quant_inherits_enforce_overrides():
+    assert issubclass(Quant, EnforceOverrides)
 
 
 def test_concrete_quant_is_instance_of_quant():
@@ -189,6 +210,7 @@ def test_concrete_quant_is_callable():
 # ---------------------------------------------------------------------------
 # allow_any_override marker
 # ---------------------------------------------------------------------------
+
 
 def test_allow_any_override_sets_marker_attribute():
     def dummy_method():
@@ -218,49 +240,74 @@ def test_subclass_call_does_not_require_marker():
 
 
 # ---------------------------------------------------------------------------
+# EnforceOverrides — subclass must use @override
+# ---------------------------------------------------------------------------
+
+
+def test_subclass_missing_override_decorator_raises():
+    """Quant subclass overriding without @override raises TypeError."""
+    with pytest.raises(TypeError):
+
+        class BadQuant(Quant):
+            def __call__(self, text: str) -> str:  # missing @override
+                return text
+
+            def dummy_inputs(self) -> list[dict[str, Any]]:
+                return [{"text": "hello"}]
+
+
+# ---------------------------------------------------------------------------
 # Subclass signature narrowing — the core design intent
 # ---------------------------------------------------------------------------
 
+
+class NarrowedQuant(Quant):
+    @override
+    def __call__(self, x: int, y: int) -> int:
+        return x + y
+
+    @override
+    def dummy_inputs(self) -> list[dict[str, Any]]:
+        return [{"x": 1, "y": 2}]
+
+
 def test_subclass_can_narrow_call_signature_to_positional_args():
     """Subclass may define __call__ with specific positional args, not **kwargs."""
-
-    class NarrowedQuant(Quant):
-        def __call__(self, x: int, y: int) -> int:
-            return x + y
-
-        def dummy_inputs(self) -> list[dict[str, Any]]:
-            return [{"x": 1, "y": 2}]
-
     q = NarrowedQuant()
     assert q(x=3, y=4) == 7
 
 
+class SingleArgQuant(Quant):
+    @override
+    def __call__(self, value: float) -> float:
+        return value * 2.0
+
+    @override
+    def dummy_inputs(self) -> list[dict[str, Any]]:
+        return [{"value": 1.0}]
+
+
 def test_subclass_can_narrow_call_to_single_arg():
-    class SingleArgQuant(Quant):
-        def __call__(self, value: float) -> float:
-            return value * 2.0
-
-        def dummy_inputs(self) -> list[dict[str, Any]]:
-            return [{"value": 1.0}]
-
     q = SingleArgQuant()
     assert q(value=5.0) == 10.0
 
 
+class TypedQuant(Quant):
+    @override
+    def __call__(self, numbers: list[int]) -> int:
+        return sum(numbers)
+
+    @override
+    def dummy_inputs(self) -> list[dict[str, Any]]:
+        return [
+            {"numbers": [1, 2, 3]},
+            {"numbers": []},
+            {"numbers": [100]},
+        ]
+
+
 def test_subclass_dummy_inputs_match_narrowed_call_signature():
     """dummy_inputs must match the narrowed __call__ signature."""
-
-    class TypedQuant(Quant):
-        def __call__(self, numbers: list[int]) -> int:
-            return sum(numbers)
-
-        def dummy_inputs(self) -> list[dict[str, Any]]:
-            return [
-                {"numbers": [1, 2, 3]},
-                {"numbers": []},
-                {"numbers": [100]},
-            ]
-
     q = TypedQuant()
     for inputs in q.dummy_inputs():
         result = q(**inputs)

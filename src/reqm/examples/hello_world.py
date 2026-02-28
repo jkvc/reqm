@@ -17,6 +17,7 @@ import textwrap
 import os
 import reqm
 from reqm import Quant
+from reqm.overrides_ext import override
 
 
 # ---------------------------------------------------------------------------
@@ -40,10 +41,12 @@ class Greeter(Quant):
         self.greeting = greeting
         self.punctuation = punctuation
 
+    @override
     def dummy_inputs(self) -> dict:
         """Return example inputs. reqm calls this at build time as a sanity check."""
         return {"name": "world"}
 
+    @override
     def __call__(self, name: str) -> str:
         """Greet the given name.
 
