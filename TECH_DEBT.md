@@ -1,10 +1,13 @@
 # Tech Debt
 
-Items to review and resolve. Each has a clear action.
+Consciously taken shortcuts and known issues. Each entry must include what was
+skipped, why, and what to do about it. **Delete entries once paid** — this file
+should shrink over time. Do not number entries; order doesn't matter and indices
+go stale.
 
 ---
 
-## 1. `__init__.py` exports nothing yet
+## `__init__.py` exports nothing yet
 
 **File:** `src/reqm/__init__.py`
 
