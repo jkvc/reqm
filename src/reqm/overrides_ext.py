@@ -39,15 +39,15 @@ Usage::
 """
 
 import sys
-from typing import Any, Callable, TypeVar
+import typing as ty
 
 from overrides import EnforceOverrides, final
 from overrides.overrides import _get_base_classes, _overrides
 
-F = TypeVar("F", bound=Callable[..., Any])
+F = ty.TypeVar("F", bound=ty.Callable[..., ty.Any])
 
 
-def _should_enforce_signature(method: Callable) -> bool:
+def _should_enforce_signature(method: ty.Callable) -> bool:
     """Decide whether signature checking applies for this override.
 
     Returns False if the method itself carries ``@allow_any_override``, or if

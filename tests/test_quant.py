@@ -5,7 +5,7 @@ Tests here also serve as usage examples: each test is a self-contained
 demonstration of how Quant is defined and used.
 """
 
-from typing import Any
+import abc
 
 import pytest
 
@@ -25,7 +25,7 @@ class EchoQuant(Quant):
         return text
 
     @override
-    def dummy_inputs(self) -> list[dict[str, Any]]:
+    def dummy_inputs(self) -> list[dict[str, object]]:
         return [{"text": "hello"}]
 
 
@@ -41,7 +41,7 @@ class MultiInputQuant(Quant):
         return f"{self.prefix}{text}{self.suffix}"
 
     @override
-    def dummy_inputs(self) -> list[dict[str, Any]]:
+    def dummy_inputs(self) -> list[dict[str, object]]:
         return [
             {"text": "hello"},
             {"text": "world"},
@@ -57,7 +57,7 @@ class NoArgsCallQuant(Quant):
         return "pong"
 
     @override
-    def dummy_inputs(self) -> list[dict[str, Any]]:
+    def dummy_inputs(self) -> list[dict[str, object]]:
         return [{}]
 
 
@@ -74,7 +74,7 @@ def test_quant_cannot_be_instantiated_directly():
 def test_quant_subclass_without_call_cannot_be_instantiated():
     class MissingCall(Quant):
         @override
-        def dummy_inputs(self) -> list[dict[str, Any]]:
+        def dummy_inputs(self) -> list[dict[str, object]]:
             return [{}]
 
     with pytest.raises(TypeError):
@@ -84,7 +84,7 @@ def test_quant_subclass_without_call_cannot_be_instantiated():
 def test_quant_subclass_without_dummy_inputs_cannot_be_instantiated():
     class MissingDummyInputs(Quant):
         @override
-        def __call__(self, **kwargs) -> Any:
+        def __call__(self, **kwargs) -> object:
             return None
 
     with pytest.raises(TypeError):
@@ -185,11 +185,8 @@ def test_dummy_inputs_multiple_sets_all_runnable():
 # ---------------------------------------------------------------------------
 
 
-def test_quant_is_abstract():
-    """Quant uses ABCMeta (via EnforceOverridesMeta) so abstractmethods work."""
-    from abc import ABCMeta
-
-    assert isinstance(Quant, ABCMeta)
+def test_quant_is_abstract_base_class():
+    assert issubclass(Quant, abc.ABC)
 
 
 def test_quant_inherits_enforce_overrides():
@@ -251,7 +248,7 @@ def test_subclass_missing_override_decorator_raises():
             def __call__(self, text: str) -> str:  # missing @override
                 return text
 
-            def dummy_inputs(self) -> list[dict[str, Any]]:
+            def dummy_inputs(self) -> list[dict[str, object]]:
                 return [{"text": "hello"}]
 
 
@@ -266,7 +263,7 @@ class NarrowedQuant(Quant):
         return x + y
 
     @override
-    def dummy_inputs(self) -> list[dict[str, Any]]:
+    def dummy_inputs(self) -> list[dict[str, object]]:
         return [{"x": 1, "y": 2}]
 
 
@@ -282,7 +279,7 @@ class SingleArgQuant(Quant):
         return value * 2.0
 
     @override
-    def dummy_inputs(self) -> list[dict[str, Any]]:
+    def dummy_inputs(self) -> list[dict[str, object]]:
         return [{"value": 1.0}]
 
 
@@ -297,7 +294,7 @@ class TypedQuant(Quant):
         return sum(numbers)
 
     @override
-    def dummy_inputs(self) -> list[dict[str, Any]]:
+    def dummy_inputs(self) -> list[dict[str, object]]:
         return [
             {"numbers": [1, 2, 3]},
             {"numbers": []},

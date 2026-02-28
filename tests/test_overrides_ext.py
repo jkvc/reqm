@@ -4,8 +4,8 @@ Tests for reqm.overrides_ext — allow_any_override, override, final, EnforceOve
 Tests also serve as usage examples for each exported symbol.
 """
 
-from abc import abstractmethod
-from typing import Any
+import abc
+import typing as ty
 
 import pytest
 
@@ -60,9 +60,9 @@ def test_allow_any_override_on_method_without_attribute_initially():
 
 
 class _NarrowCallBase(EnforceOverrides):
-    @abstractmethod
+    @abc.abstractmethod
     @allow_any_override
-    def __call__(self, **kwargs) -> Any: ...
+    def __call__(self, **kwargs) -> ty.Any: ...
 
 
 class _NarrowCallChild(_NarrowCallBase):
@@ -78,9 +78,9 @@ def test_override_allows_signature_narrowing_on_allow_any_override_method():
 
 
 class _MultiArgBase(EnforceOverrides):
-    @abstractmethod
+    @abc.abstractmethod
     @allow_any_override
-    def __call__(self, **kwargs) -> Any: ...
+    def __call__(self, **kwargs) -> ty.Any: ...
 
 
 class _MultiArgChild(_MultiArgBase):
@@ -95,9 +95,9 @@ def test_override_allows_multiple_specific_args_when_parent_has_allow_any_overri
 
 
 class _NoArgBase(EnforceOverrides):
-    @abstractmethod
+    @abc.abstractmethod
     @allow_any_override
-    def compute(self, **kwargs) -> Any: ...
+    def compute(self, **kwargs) -> ty.Any: ...
 
 
 class _NoArgChild(_NoArgBase):
@@ -138,7 +138,7 @@ def test_override_works_on_normal_method_without_allow_any_override():
 
 
 class _AbstractNameBase(EnforceOverrides):
-    @abstractmethod
+    @abc.abstractmethod
     def name(self) -> str: ...
 
 
@@ -149,7 +149,7 @@ class _AbstractNameChild(_AbstractNameBase):
 
 
 def test_override_on_abstract_method_without_allow_any_override():
-    """@override on a plain abstractmethod (no allow_any_override) works."""
+    """@override on a plain abc.abstractmethod (no allow_any_override) works."""
     child = _AbstractNameChild()
     assert child.name() == "child"
 
@@ -189,11 +189,11 @@ def test_enforce_overrides_passes_when_override_used():
 
 
 class _ComboBase(EnforceOverrides):
-    @abstractmethod
+    @abc.abstractmethod
     @allow_any_override
-    def __call__(self, **kwargs) -> Any: ...
+    def __call__(self, **kwargs) -> ty.Any: ...
 
-    @abstractmethod
+    @abc.abstractmethod
     def label(self) -> str: ...
 
 

@@ -5,13 +5,12 @@ A Quant is the unit reqm builds and manages: a callable with constructor args
 defined in config, and a dummy_inputs method that makes it auditable.
 """
 
-from abc import abstractmethod
-from typing import Any
+import abc
 
 from reqm.overrides_ext import EnforceOverrides, allow_any_override
 
 
-class Quant(EnforceOverrides):
+class Quant(abc.ABC, EnforceOverrides):
     """Abstract base class for all reqm Quants.
 
     A Quant is a callable unit managed by reqm. It is:
@@ -55,9 +54,9 @@ class Quant(EnforceOverrides):
                 quant(**inputs)  # fails fast here if something is broken
     """
 
-    @abstractmethod
+    @abc.abstractmethod
     @allow_any_override
-    def __call__(self, **kwargs) -> Any:
+    def __call__(self, **kwargs) -> object:
         """Call the Quant with the given inputs.
 
         Subclasses must override this with their specific input signature.
@@ -86,8 +85,8 @@ class Quant(EnforceOverrides):
         """
         ...
 
-    @abstractmethod
-    def dummy_inputs(self) -> list[dict[str, Any]]:
+    @abc.abstractmethod
+    def dummy_inputs(self) -> list[dict[str, object]]:
         """Return a list of example input dicts for build-time sanity checking.
 
         Each dict maps argument names to example values. reqm ``**``-expands
