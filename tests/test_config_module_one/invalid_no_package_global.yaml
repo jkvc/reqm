@@ -1,0 +1,3 @@
+_target_: tests.dummy_objects.SimpleObject
+value: 1
+label: invalid

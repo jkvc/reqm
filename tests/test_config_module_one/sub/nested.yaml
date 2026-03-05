@@ -1,0 +1,4 @@
+# @package _global_
+_target_: tests.dummy_objects.SimpleObject
+value: 99
+label: nested

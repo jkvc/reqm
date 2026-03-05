@@ -1,0 +1,3 @@
+# @package _global_
+name: test
+value: ${nonexistent_key}

@@ -1,0 +1,4 @@
+# @package _global_
+database_host: localhost
+database_port: 5432
+debug: true

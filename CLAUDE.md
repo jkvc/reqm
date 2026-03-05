@@ -21,11 +21,12 @@ not an afterthought.
 
 ## What reqm is
 
-`reqm` (Ridiculously Easy Quant Manager) is a config-based aliased object factory
-with enforced interfaces, built on top of Hydra's `instantiate`. It eliminates
-"Hydra ceremony" (context managers, `@hydra.main`, etc.) while keeping Hydra's
-config power. The uniform call site — `reqm.get("alias")` — works identically in
-notebooks, production services, tests, and scripts.
+`reqm` (Ridiculously Easy Quant Manager) is a directory-based config management
+and object factory built on Hydra's `instantiate`. It eliminates "Hydra ceremony"
+(context managers, `@hydra.main`, etc.) while keeping Hydra's config composition
+power. A `QuantManager` takes an importable Python config module (a directory with
+`__init__.py` and YAML files) and provides a uniform API to list, validate, load,
+and build objects from those configs.
 
 ---
 
@@ -42,14 +43,21 @@ Requirements:
 The factory calls each Quant with its own `dummy_inputs()` at build time.
 This makes Quants **auditable** — not just interface-compliant, but provably runnable.
 
-### Registry
-Maps alias strings to `(config_path, interface_class)` pairs.
-Registration happens at import time or explicitly. The registry is global per process.
+### QuantManager
+Directory-based config manager. Takes an importable Python module whose
+directory contains YAML config files and treats it as the Hydra config root.
 
-### `reqm.get(alias)`
-The uniform call site. Looks up the registry, instantiates via
-`hydra.utils.instantiate`, validates interface, runs `dummy_inputs` sanity check.
-Returns a ready-to-use Quant instance.
+Key methods:
+- `list_configs()` — list all YAML configs in the module
+- `validate()` — check that all configs have `# @package _global_`
+- `get_config(name)` — load and resolve a config as OmegaConf DictConfig
+- `get_raw_config(name)` — load and resolve a config as a YAML string
+- `build(name)` — instantiate the `_target_` object from a config
+
+All methods accept optional `config_overrides` (dict) and `param_overrides`
+(Hydra CLI-style strings) for runtime customization.
+
+See `docs/config_management.md` for detailed design rationale.
 
 ---
 
@@ -64,15 +72,18 @@ Returns a ready-to-use Quant instance.
 
 3. **Minimal public API.** The surface users touch is:
    - `Quant` (base class to subclass)
-   - `reqm.register(alias, config_path, interface)` (registration)
-   - `reqm.get(alias)` (retrieval)
+   - `QuantManager(config_module)` (config management and object building)
    Keep everything else internal.
 
 4. **Declarative over imperative.** Config files express what to build.
    Python code expresses the interface contract. Never mix them.
 
-5. **Uniform call site is sacred.** `reqm.get("alias")` must never change
-   signature regardless of what's behind the alias.
+5. **Directory-based, not registry-based.** Config modules are importable
+   Python packages containing YAMLs. No global registry, no eager imports.
+   Every YAML must declare `# @package _global_` for explicit composition.
+
+6. **Generic instantiation.** `QuantManager.build()` instantiates whatever
+   `_target_` points to — it does not enforce that the result is a Quant.
 
 ---
 
@@ -84,27 +95,27 @@ with an `Examples:` section containing runnable code. Small LLMs helping users
 will rely on these.
 
 ```python
-def get(alias: str) -> Quant:
-    """Retrieve a built Quant instance by alias.
+def build(self, config_name: str, *, ...) -> object:
+    """Build an object from a config via hydra.utils.instantiate.
 
-    Instantiates the Quant from its registered config, validates it against
-    the registered interface, and runs dummy_inputs as a sanity check.
+    Loads the config, applies overrides, resolves interpolations, and
+    passes the result to Hydra's recursive instantiation.
 
     Args:
-        alias: The registered alias string, e.g. "summarizer/prod".
+        config_name: Config name (relative path, no .yaml extension).
 
     Returns:
-        A ready-to-use Quant instance.
+        The instantiated object.
 
     Raises:
-        KeyError: If alias is not registered.
-        TypeError: If the instantiated object does not implement the
-            registered interface.
-        RuntimeError: If dummy_inputs sanity check fails.
+        FileNotFoundError: If config_name does not exist.
+        hydra.errors.InstantiationException: If instantiation fails.
 
     Examples:
-        >>> import reqm
-        >>> model = reqm.get("summarizer/prod")
+        >>> import my_configs
+        >>> from reqm import QuantManager
+        >>> QM = QuantManager(my_configs)
+        >>> model = QM.build("summarizer/prod")
         >>> result = model(text="Hello world")
     """
 ```
@@ -119,13 +130,13 @@ interface was involved and what to do next.
 
 ```python
 # Good
-raise KeyError(
-    f"Alias '{alias}' is not registered. "
-    f"Call reqm.register('{alias}', config_path, interface) first."
+raise FileNotFoundError(
+    f"Config '{config_name}' not found in config module at {self._config_dir}. "
+    f"Available configs: {self.list_configs()}"
 )
 
 # Bad
-raise KeyError(f"Unknown alias: {alias}")
+raise FileNotFoundError(f"Config not found: {config_name}")
 ```
 
 ### No magic
@@ -138,27 +149,29 @@ If something happens, it should be traceable by reading the call stack.
 
 ```
 src/reqm/
-├── __init__.py          # public API exports only: Quant, register, get
+├── __init__.py          # public API exports: Quant, QuantManager
 ├── quant.py             # Quant ABC definition
-├── registry.py          # Registry class and global instance
-├── factory.py           # instantiate logic wrapping hydra
+├── quant_manager.py     # QuantManager, ConfigValidationError
+├── overrides_ext.py     # @override / @allow_any_override support
 └── examples/
     ├── __init__.py
-    ├── hello_world.py   # simplest end-to-end example
-    └── r2p.py           # research-to-production swap pattern
+    ├── hello_world.py   # simplest end-to-end example (TODO: rewrite for QM)
+    └── r2p.py           # research-to-production swap pattern (TODO: rewrite for QM)
 ```
 
 ---
 
-## What to build next (current status: pre-implementation)
+## What to build next
 
-Implementation order:
-1. `quant.py` — `Quant` ABC with `dummy_inputs` abstract method
-2. `registry.py` — `Registry` class: register, lookup
-3. `factory.py` — `build(alias)` wrapping `hydra.utils.instantiate`
-4. `__init__.py` — wire up public API
-5. `examples/` — working hello-world examples
-6. `tests/` — one test per public API entry point
+Completed:
+1. ~~`quant.py` — `Quant` ABC with `dummy_inputs` abstract method~~
+2. ~~`overrides_ext.py` — `@override` / `@allow_any_override` support~~
+3. ~~`quant_manager.py` — `QuantManager` class + `ConfigValidationError`~~
+
+Remaining:
+4. `__init__.py` — wire up public API exports (`Quant`, `QuantManager`)
+5. `examples/` — rewrite for QuantManager pattern (currently use old registry API)
+6. Integration tests with Quant + QuantManager together
 
 ---
 

@@ -1,0 +1,4 @@
+# @package _global_
+base_value: 10
+doubled: ${base_value}
+label: "value is ${base_value}"

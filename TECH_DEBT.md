@@ -11,8 +11,23 @@ go stale.
 
 **File:** `src/reqm/__init__.py`
 
-The public API (`Quant`, `register`, `get`, and optionally `overrides_ext` symbols)
-is not exported from the package. `import reqm` currently gives you nothing.
+The public API (`Quant`, `QuantManager`) is not exported from the package.
+`import reqm` currently gives you nothing.
 
-**Action:** Wire up exports once all three modules (`quant.py`, `registry.py`,
-`factory.py`) are implemented.
+**Action:** Wire up exports once `QuantManager` implementation is complete.
+
+---
+
+## Examples use old registry API
+
+**Files:** `src/reqm/examples/hello_world.py`, `src/reqm/examples/r2p.py`
+
+Both examples still use the removed `reqm.register()` / `reqm.get()` pattern
+which no longer exists. They will fail at import time.
+
+**Why:** The examples were written before the design pivot from registry-based
+to directory-based config management (`QuantManager`).
+
+**Action:** Rewrite both examples to use `QuantManager` with proper config
+module directories. Each example should have its own config module package.
+

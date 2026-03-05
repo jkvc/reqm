@@ -1,0 +1,6 @@
+# @package _global_
+defaults:
+  - /atomic_simple@root_data
+
+_target_: tests.dummy_objects.ComposedObject
+name: sub_depends_on_root
