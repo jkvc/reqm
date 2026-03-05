@@ -2,6 +2,7 @@
 defaults:
   - /atomic_simple@first
   - /atomic_no_target@second
+  - _self_
 
 _target_: tests.dummy_objects.MultiDepObject
 tag: multi

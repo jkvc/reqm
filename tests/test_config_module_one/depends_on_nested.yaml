@@ -1,6 +1,7 @@
 # @package _global_
 defaults:
   - /sub/nested@nested_data
+  - _self_
 
 _target_: tests.dummy_objects.ComposedObject
 name: depends_on_nested

@@ -1,6 +1,7 @@
 # @package _global_
 defaults:
   - /chain_middle@child
+  - _self_
 
 _target_: tests.dummy_objects.ComposedObject
 name: end
