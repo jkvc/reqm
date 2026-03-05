@@ -131,11 +131,11 @@ demonstrates Quant subclasses, non-Quant configurable dependencies (Filters),
 Hydra config composition, and a uniform evaluation script:
 
 ```bash
-uv run python -m examples.estimators.evaluate mean_simple
-uv run python -m examples.estimators.evaluate mean_outlier
-uv run python -m examples.estimators.evaluate median_simple
-uv run python -m examples.estimators.evaluate trimmed_mean
-uv run python -m examples.estimators.evaluate ensemble/mean_median
+uv run python -m examples.estimators.scripts.evaluate mean_simple
+uv run python -m examples.estimators.scripts.evaluate mean_outlier
+uv run python -m examples.estimators.scripts.evaluate median_simple
+uv run python -m examples.estimators.scripts.evaluate trimmed_mean
+uv run python -m examples.estimators.scripts.evaluate ensemble/mean_median
 ```
 
 ## Public API
