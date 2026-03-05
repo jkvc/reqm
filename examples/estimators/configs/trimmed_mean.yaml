@@ -1,0 +1,12 @@
+# @package _global_
+#
+# Trimmed mean — drops the bottom and top 10% of values, then averages.
+# A middle ground between mean (outlier-sensitive) and median (ignores magnitude).
+# The trim_pct hyperparameter controls how much of each tail is discarded.
+
+defaults:
+  - /filters/no_filter@filter
+  - _self_
+
+_target_: examples.estimators.quants.trimmed_mean.TrimmedMeanEstimator
+trim_pct: 0.2

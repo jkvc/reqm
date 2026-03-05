@@ -1,0 +1,18 @@
+# @package _global_
+#
+# Ensemble of MeanEstimator (with outlier filtering) and MedianEstimator.
+# Demonstrates Quant-depends-on-Quant composition: both primary and secondary
+# are full Estimator configs, recursively instantiated by Hydra.
+#
+# The alpha hyperparameter controls the blend:
+#   prediction = alpha * primary(data) + (1 - alpha) * secondary(data)
+#
+# Try changing alpha, or swapping the child configs to experiment.
+
+defaults:
+  - /mean_outlier@primary
+  - /median_simple@secondary
+  - _self_
+
+_target_: examples.estimators.quants.ensemble.EnsembleEstimator
+alpha: 0.6

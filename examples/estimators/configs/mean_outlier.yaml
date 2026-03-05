@@ -1,0 +1,12 @@
+# @package _global_
+#
+# Arithmetic mean with outlier filtering.
+# Same MeanEstimator class as mean_simple, but with OutlierFilter injected
+# via the defaults list. This shows how config composition lets you reuse
+# the same code with different preprocessing — no Python changes needed.
+
+defaults:
+  - /filters/outlier@filter
+  - _self_
+
+_target_: examples.estimators.quants.mean.MeanEstimator

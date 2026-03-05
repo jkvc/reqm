@@ -1,0 +1,8 @@
+# @package _global_
+#
+# Z-score outlier filter.
+# Drops data points more than std_threshold standard deviations from the mean.
+# Lower std_threshold = more aggressive filtering.
+
+_target_: examples.estimators.filters.outlier.OutlierFilter
+std_threshold: 2.0

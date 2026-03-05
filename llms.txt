@@ -1,11 +1,12 @@
 # reqm — Ridiculously Easy Quant Manager
 
-Config-based aliased object factory with enforced interfaces, built on Hydra.
+Directory-based config management and object factory built on Hydra.
 
 ## The one-line pitch
 
-`reqm.get("alias")` — same call in a notebook, a FastAPI endpoint, a test, or a
-batch job. No framework ceremony, no call site changes when you swap implementations.
+`QuantManager(config_module).build("config_name")` — same call in a notebook,
+a FastAPI endpoint, a test, or a batch job. No Hydra ceremony, no call site
+changes when you swap implementations.
 
 ## Installation
 
@@ -16,35 +17,37 @@ pip install reqm
 ## Minimal working example
 
 ```python
-# 1. Define your interface (what all implementations must do)
+# 1. Define your Quant — subclass and implement __call__ + dummy_inputs
 from reqm import Quant
+from reqm.overrides_ext import override
 
 class Summarizer(Quant):
     def __init__(self, model_name: str, max_tokens: int):
         self.model = load_model(model_name)
         self.max_tokens = max_tokens
 
-    def dummy_inputs(self) -> dict:
-        # reqm calls this at build time to verify the Quant actually runs
-        return {"text": "The quick brown fox jumps over the lazy dog."}
+    @override
+    def dummy_inputs(self) -> list[dict]:
+        return [{"text": "The quick brown fox jumps over the lazy dog."}]
 
+    @override
     def __call__(self, text: str) -> str:
         return self.model.summarize(text, max_tokens=self.max_tokens)
 
 
-# 2. Write a config file (conf/summarizer/prod.yaml)
-# _target_: myproject.models.Summarizer
-# model_name: gpt-4o
-# max_tokens: 512
+# 2. Write a config file (my_configs/summarizer_prod.yaml)
+#    # @package _global_
+#    _target_: myproject.models.Summarizer
+#    model_name: gpt-4o
+#    max_tokens: 512
 
 
-# 3. Register the alias
-import reqm
-reqm.register("summarizer/prod", "conf/summarizer/prod.yaml", Summarizer)
+# 3. Build it — this line never changes, no matter what config you point to
+import my_configs
+from reqm import QuantManager
 
-
-# 4. Use it — this line never changes, no matter what's behind the alias
-model = reqm.get("summarizer/prod")
+QM = QuantManager(my_configs)
+model = QM.build("summarizer_prod")
 result = model(text="Explain quantum entanglement simply.")
 ```
 
@@ -52,79 +55,112 @@ result = model(text="Explain quantum entanglement simply.")
 
 ### Quant
 The unit reqm builds and manages. Subclass `reqm.Quant` and implement:
-- `__call__(self, **kwargs)` — the inference/computation
-- `dummy_inputs(self) -> dict` — example inputs used for build-time sanity check
+- `__call__(self, **kwargs)` — the inference/computation (narrow the signature)
+- `dummy_inputs(self) -> list[dict]` — example inputs for build-time sanity check
 
-`dummy_inputs` is what makes a Quant **auditable**: reqm calls it with your
-own example inputs when you call `reqm.get()`. If it fails, it fails immediately
+`dummy_inputs` is what makes a Quant **auditable**: reqm can call it at build
+time to verify the Quant actually runs. If it fails, it fails immediately
 with a clear error, not silently in production.
 
-### Registry
-Maps alias strings to (config_path, interface_class) pairs. Register once,
-retrieve anywhere. Aliases can be any string; convention is `"category/variant"`.
+### QuantManager
+Directory-based config manager. Takes an importable Python module containing
+YAML config files and provides a uniform API:
+
+```python
+import my_configs
+from reqm import QuantManager
+
+QM = QuantManager(my_configs)
+QM.list_configs()                      # ["model_a", "serving/prod"]
+QM.validate()                          # check all configs have @package _global_
+cfg = QM.get_config("model_a")         # resolved OmegaConf DictConfig
+raw = QM.get_raw_config("model_a")     # resolved YAML string
+obj = QM.build("model_a")              # instantiated object
+```
+
+All methods accept optional `config_overrides` (dict) and `param_overrides`
+(Hydra CLI-style strings) for runtime customization.
 
 ### Config files
-Standard Hydra YAML. The `_target_` key points to your class.
-All other keys become constructor arguments.
+Standard Hydra YAML. The `_target_` key points to your class. All other keys
+become constructor arguments. Every config must start with `# @package _global_`.
 
 ```yaml
-# conf/summarizer/prod.yaml
+# @package _global_
 _target_: myproject.models.Summarizer
 model_name: gpt-4o
 max_tokens: 512
 ```
 
-## The R2P (research-to-production) pattern
+Configs can compose other configs via Hydra defaults lists:
 
-Register multiple aliases pointing to different implementations of the same interface.
-Swap by changing one string — the call site never changes.
+```yaml
+# @package _global_
+defaults:
+  - /base_model@child
+  - _self_
+_target_: myproject.models.Ensemble
+weight: 0.6
+```
+
+## The uniform call site pattern
+
+The core value proposition: ONE script, swap the config name, get different
+experimental results. No code changes needed.
 
 ```python
-reqm.register("summarizer/prod",         "conf/summarizer/prod.yaml",         Summarizer)
-reqm.register("summarizer/fast",         "conf/summarizer/fast.yaml",         Summarizer)
-reqm.register("summarizer/experiment_v3","conf/summarizer/experiment_v3.yaml", Summarizer)
+import sys
+import my_configs
+from reqm import QuantManager
 
-# These three lines are identical in structure — only the alias changes
-model = reqm.get("summarizer/prod")
-model = reqm.get("summarizer/fast")
-model = reqm.get("summarizer/experiment_v3")
+QM = QuantManager(my_configs)
+model = QM.build(sys.argv[1])       # <-- only this string changes
+result = model(text="Hello world")
+```
+
+```bash
+python evaluate.py summarizer_prod
+python evaluate.py summarizer_fast
+python evaluate.py summarizer_experiment_v3
+```
+
+## Runnable example
+
+The repo includes a complete example project at `examples/estimators/` that
+demonstrates Quant subclasses, non-Quant configurable dependencies (Filters),
+Hydra config composition, and a uniform evaluation script:
+
+```bash
+uv run python -m examples.estimators.evaluate mean_simple
+uv run python -m examples.estimators.evaluate mean_outlier
+uv run python -m examples.estimators.evaluate median_simple
+uv run python -m examples.estimators.evaluate trimmed_mean
+uv run python -m examples.estimators.evaluate ensemble/mean_median
 ```
 
 ## Public API
 
 ```python
-import reqm
+from reqm import Quant, QuantManager, ConfigValidationError
 
 # Define your Quant
-class MyQuant(reqm.Quant):
-    ...
+class MyQuant(Quant): ...
 
-# Register
-reqm.register(alias: str, config_path: str, interface: type) -> None
-
-# Retrieve (instantiates, validates interface, runs dummy_inputs)
-reqm.get(alias: str) -> reqm.Quant
+# Manage configs and build objects
+QM = QuantManager(config_module)
+QM.list_configs() -> list[str]
+QM.validate(config_name=None) -> None
+QM.get_config(config_name, *, config_overrides=None, param_overrides=None) -> DictConfig
+QM.get_raw_config(config_name, *, config_overrides=None, param_overrides=None) -> str
+QM.build(config_name, *, config_overrides=None, param_overrides=None) -> object
 ```
-
-## Runnable examples
-
-The package ships with working examples. After `pip install reqm`:
-
-```bash
-python -m reqm.examples.hello_world
-python -m reqm.examples.r2p
-```
-
-Or read them directly:
-- `reqm/examples/hello_world.py` — simplest end-to-end usage
-- `reqm/examples/r2p.py` — research-to-production alias swap pattern
 
 ## Why not just Hydra?
 
 Hydra is framework-first — it expects to own your program's entry point.
-reqm is library-first: no `@hydra.main`, no `hydra.initialize()`, no context managers.
-reqm handles all Hydra plumbing internally. You get config-driven instantiation
-without the ceremony.
+reqm is library-first: no `@hydra.main`, no `hydra.initialize()`, no context
+managers. reqm handles all Hydra plumbing internally. You get config-driven
+instantiation and composition without the ceremony.
 
 ## Common mistakes
 
@@ -135,3 +171,6 @@ your Quant actually runs before you're in production.
 
 **Don't** hardcode constructor args in Python — put them in the YAML config.
 That's the whole point.
+
+**Don't** forget `# @package _global_` — every YAML config needs this header.
+Call `QM.validate()` in your tests to catch missing headers early.

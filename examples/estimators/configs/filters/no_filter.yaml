@@ -1,0 +1,6 @@
+# @package _global_
+#
+# Passthrough filter — returns data unchanged.
+# Use this as the default when you want to see raw, unfiltered behavior.
+
+_target_: examples.estimators.filters.no_filter.NoFilter

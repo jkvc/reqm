@@ -1,0 +1,7 @@
+# @package _global_
+#
+# Top-K filter — keeps only the k largest values.
+# Useful when you care only about the high end of a distribution.
+
+_target_: examples.estimators.filters.top_k.TopKFilter
+k: 5

@@ -1,0 +1,11 @@
+# @package _global_
+#
+# Median estimator with no filtering.
+# Naturally robust to outliers even without preprocessing — a good baseline
+# to compare against MeanEstimator variants.
+
+defaults:
+  - /filters/no_filter@filter
+  - _self_
+
+_target_: examples.estimators.quants.median.MedianEstimator

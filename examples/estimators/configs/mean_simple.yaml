@@ -1,0 +1,11 @@
+# @package _global_
+#
+# Arithmetic mean with no filtering.
+# This is the simplest estimator — a good baseline, but sensitive to outliers.
+# Compare with mean_outlier to see how filtering helps.
+
+defaults:
+  - /filters/no_filter@filter
+  - _self_
+
+_target_: examples.estimators.quants.mean.MeanEstimator

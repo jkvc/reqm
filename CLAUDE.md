@@ -152,11 +152,23 @@ src/reqm/
 ├── __init__.py          # public API exports: Quant, QuantManager
 ├── quant.py             # Quant ABC definition
 ├── quant_manager.py     # QuantManager, ConfigValidationError
-├── overrides_ext.py     # @override / @allow_any_override support
-└── examples/
-    ├── __init__.py
-    ├── hello_world.py   # simplest end-to-end example (TODO: rewrite for QM)
-    └── r2p.py           # research-to-production swap pattern (TODO: rewrite for QM)
+└── overrides_ext.py     # @override / @allow_any_override support
+
+examples/
+└── estimators/          # end-to-end example project
+    ├── filters/         # non-Quant configurable dependencies
+    │   ├── api.py       # Filter base class
+    │   ├── no_filter.py, outlier.py, top_k.py
+    ├── quants/          # Estimator Quant subclasses
+    │   ├── api.py       # Estimator(Quant) base class
+    │   ├── mean.py, median.py, trimmed_mean.py, ensemble.py
+    ├── scripts/         # uniform call site demos
+    │   ├── evaluate.py, inspect_config.py, compare.py
+    │   ├── validate_configs.py, sweep.py
+    └── configs/         # config module for QuantManager
+        ├── filters/     # filter configs (non-Quant)
+        ├── *.yaml       # estimator configs (compose filters via defaults)
+        └── ensemble/    # ensemble configs (compose estimators via defaults)
 ```
 
 ---
@@ -168,9 +180,10 @@ Completed:
 2. ~~`overrides_ext.py` — `@override` / `@allow_any_override` support~~
 3. ~~`quant_manager.py` — `QuantManager` class + `ConfigValidationError`~~
 
+4. ~~`__init__.py` — wire up public API exports (`Quant`, `QuantManager`)~~
+5. ~~`examples/` — estimators example project with eval script~~
+
 Remaining:
-4. `__init__.py` — wire up public API exports (`Quant`, `QuantManager`)
-5. `examples/` — rewrite for QuantManager pattern (currently use old registry API)
 6. Integration tests with Quant + QuantManager together
 
 ---
