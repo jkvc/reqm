@@ -11,6 +11,8 @@ implement ``forward()``.
 
 from __future__ import annotations
 
+import abc
+
 import torch
 
 from examples.torch_models.torch_quant import TorchQuant
@@ -42,6 +44,15 @@ class Regressor(TorchQuant):
 
     # Subclasses must set this so dummy_inputs knows the input dimension.
     in_features: int
+
+    @override
+    @abc.abstractmethod
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Forward pass: (batch, in_features) -> (batch, 1).
+
+        Subclasses must match this exact signature.
+        """
+        ...
 
     @override
     def dummy_inputs(self) -> list[dict[str, object]]:

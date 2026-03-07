@@ -240,6 +240,51 @@ class MyModel(TorchQuant):
 Everything works: hooks fire, gradients flow, `state_dict()` works,
 `dummy_inputs()` audits the model at build time.
 
+### Two-level signature narrowing (domain base classes)
+
+`TorchQuant.forward` has `@allow_any_override` — any direct subclass can
+narrow the signature freely. But you should NOT have every concrete model
+subclass TorchQuant directly. Instead, create a **domain base class** that
+narrows `forward` and locks it down for all models in that domain:
+
+```python
+class Regressor(TorchQuant):
+    """All regressors: forward(self, x: Tensor) -> Tensor."""
+    in_features: int
+
+    @override
+    @abc.abstractmethod
+    def forward(self, x: torch.Tensor) -> torch.Tensor: ...
+    # No @allow_any_override — signature is now locked
+
+    @override
+    def dummy_inputs(self) -> list[dict]:
+        return [{"x": torch.randn(4, self.in_features)}]
+```
+
+Now concrete models MUST match the locked signature:
+
+```python
+class LinearRegressor(Regressor):      # OK
+    @override
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.linear(x)
+
+class BadRegressor(Regressor):          # REJECTED at class definition time
+    @override
+    def forward(self, a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
+        return a + b
+```
+
+This is the pattern:
+1. **TorchQuant** — `forward` is open (`@allow_any_override`)
+2. **Domain base** (e.g. Regressor) — narrows `forward`, locks it (no `@allow_any_override`)
+3. **Concrete model** — must match the domain base's signature exactly
+
+Without step 2, any model could define `forward` with any signature, and
+your uniform evaluation scripts would break at runtime instead of at class
+definition time.
+
 For the full working example project (models, configs, scripts), see
 https://github.com/jkvc/reqm/tree/main/examples/torch_models
 

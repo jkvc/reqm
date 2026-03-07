@@ -238,6 +238,31 @@ def test_mro_requires_forward_even_though_call_is_satisfied():
 
 
 # ---------------------------------------------------------------------------
+# Regressor enforces forward(self, x: Tensor) signature
+# ---------------------------------------------------------------------------
+
+
+def test_regressor_subclass_cannot_use_wrong_forward_signature():
+    """Regressor locks forward to (self, x: Tensor). A subclass that tries
+    a different signature should be rejected by EnforceOverrides."""
+    from examples.torch_models.models.api import Regressor
+
+    with pytest.raises(TypeError):
+
+        class BadRegressor(Regressor):
+            def __init__(self):
+                super().__init__()
+
+            @override
+            def forward(self, a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
+                return a + b
+
+            @override
+            def dummy_inputs(self) -> list[dict[str, object]]:
+                return [{"a": torch.randn(2), "b": torch.randn(2)}]
+
+
+# ---------------------------------------------------------------------------
 # state_dict / load_state_dict (nn.Module integration)
 # ---------------------------------------------------------------------------
 

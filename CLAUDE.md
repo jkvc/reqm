@@ -234,3 +234,23 @@ class Summarizer(Quant):
     @override
     def __call__(self, text: str, max_tokens: int = 512) -> str: ...
 ```
+
+### Two-level signature narrowing (TorchQuant pattern)
+
+`TorchQuant.forward` has `@allow_any_override` so domain base classes can
+narrow it. But the domain base class must **not** use `@allow_any_override`
+on its own `forward` — this locks the signature for all concrete models:
+
+```
+TorchQuant        → forward(**kwargs)           @allow_any_override (open)
+  Regressor       → forward(x: Tensor)          NO @allow_any_override (locked)
+    LinearModel   → forward(x: Tensor)          must match Regressor exactly
+    BadModel      → forward(a, b)               REJECTED at class definition time
+```
+
+This pattern is critical for uniform call sites. Without the domain base
+locking the signature, each concrete model could use a different `forward`
+signature, breaking evaluation scripts at runtime instead of at definition time.
+
+Always create a domain base class between TorchQuant and concrete models.
+See `docs/torch_integration.md` for the full explanation.

@@ -177,22 +177,37 @@ uv run python -m examples.estimators.scripts.sweep
 
 reqm does not depend on PyTorch, but its primary use case is config-driven model experimentation with `nn.Module`. The repo includes a `TorchQuant` bridge class that resolves the `__call__` vs `forward()` conflict — subclass it instead of plain `Quant` when your model is an `nn.Module`:
 
+Don't subclass TorchQuant directly for every model — create a **domain base class** that locks the `forward` signature for your use case:
+
 ```python
 from myproject.torch_quant import TorchQuant  # copy from examples/
 
-class MyModel(TorchQuant):
-    def __init__(self, hidden_dim: int):
-        super().__init__()
-        self.linear = nn.Linear(hidden_dim, 1)
+# Domain base — locks forward(self, x: Tensor) -> Tensor for all regressors
+class Regressor(TorchQuant):
+    in_features: int
 
     @override
-    def forward(self, x: torch.Tensor) -> torch.Tensor:  # override forward, not __call__
-        return self.linear(x)
+    @abc.abstractmethod
+    def forward(self, x: torch.Tensor) -> torch.Tensor: ...
 
     @override
     def dummy_inputs(self) -> list[dict]:
-        return [{"x": torch.randn(4, hidden_dim)}]
+        return [{"x": torch.randn(4, self.in_features)}]
+
+
+# Concrete model — must match the Regressor signature
+class LinearRegressor(Regressor):
+    def __init__(self, in_features: int):
+        super().__init__()
+        self.in_features = in_features
+        self.linear = nn.Linear(in_features, 1)
+
+    @override
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.linear(x)
 ```
+
+`TorchQuant.forward` uses `@allow_any_override` so domain bases can narrow freely. Once the domain base locks the signature (without `@allow_any_override`), all concrete models must match — enforced at class definition time, not runtime.
 
 See `docs/torch_integration.md` for the full explanation, and `examples/torch_models/` for a runnable example:
 
