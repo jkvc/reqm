@@ -20,16 +20,14 @@ from __future__ import annotations
 
 import sys
 
-import examples.estimators.configs as configs
+from examples.estimators import QM
 from examples.estimators.datasets import DATASETS
-from reqm import QuantManager
 
 
 def main() -> None:
     if len(sys.argv) < 2:
         print("Usage: python -m examples.estimators.scripts.evaluate <config_name>")
         print("\nAvailable configs:")
-        QM = QuantManager(configs)
         for name in QM.list_configs():
             if not name.startswith("filters/"):
                 print(f"  {name}")
@@ -38,7 +36,6 @@ def main() -> None:
     config_name = sys.argv[1]
 
     # --- The uniform call site: build any estimator from config ---
-    QM = QuantManager(configs)
     estimator = QM.build(config_name)
 
     # --- Run over every dataset and collect errors ---

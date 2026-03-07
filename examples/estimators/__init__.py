@@ -18,3 +18,8 @@
 #         mean_simple mean_outlier median_simple
 #     uv run python -m examples.estimators.scripts.validate_configs
 #     uv run python -m examples.estimators.scripts.sweep
+
+import examples.estimators.configs as configs
+from reqm import QuantManager
+
+QM = QuantManager(configs)

@@ -11,9 +11,8 @@ Usage:
 
 from __future__ import annotations
 
-import examples.estimators.configs as configs
+from examples.estimators import QM
 from examples.estimators.datasets import DATASETS
-from reqm import QuantManager
 
 
 def compute_mse(estimator: object, datasets: list[dict]) -> float:
@@ -25,8 +24,6 @@ def compute_mse(estimator: object, datasets: list[dict]) -> float:
 
 
 def main() -> None:
-    QM = QuantManager(configs)
-
     # Auto-discover all estimator configs (exclude filter-only configs)
     estimator_configs = [
         name for name in QM.list_configs() if not name.startswith("filters/")

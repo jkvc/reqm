@@ -156,13 +156,14 @@ src/reqm/
 
 examples/
 └── estimators/          # end-to-end example project
+    ├── __init__.py      # QM = QuantManager(configs) — single construction point
     ├── filters/         # non-Quant configurable dependencies
     │   ├── api.py       # Filter base class
     │   ├── no_filter.py, outlier.py, top_k.py
     ├── quants/          # Estimator Quant subclasses
     │   ├── api.py       # Estimator(Quant) base class
     │   ├── mean.py, median.py, trimmed_mean.py, ensemble.py
-    ├── scripts/         # uniform call site demos
+    ├── scripts/         # uniform call site demos (import QM from parent)
     │   ├── evaluate.py, inspect_config.py, compare.py
     │   ├── validate_configs.py, sweep.py
     └── configs/         # config module for QuantManager

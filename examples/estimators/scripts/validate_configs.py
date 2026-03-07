@@ -10,14 +10,11 @@ Usage:
 
 from __future__ import annotations
 
-import examples.estimators.configs as configs
-from reqm import QuantManager
+from examples.estimators import QM
 from reqm.quant_manager import ConfigValidationError
 
 
 def main() -> None:
-    QM = QuantManager(configs)
-
     all_configs = QM.list_configs()
     print(f"Found {len(all_configs)} configs:\n")
     for name in all_configs:

@@ -16,8 +16,7 @@ from __future__ import annotations
 
 import sys
 
-import examples.estimators.configs as configs
-from reqm import QuantManager
+from examples.estimators import QM
 
 
 def main() -> None:
@@ -26,7 +25,6 @@ def main() -> None:
             "Usage: python -m examples.estimators.scripts.inspect_config <config_name>"
         )
         print("\nAvailable configs:")
-        QM = QuantManager(configs)
         for name in QM.list_configs():
             print(f"  {name}")
         sys.exit(1)
@@ -34,7 +32,6 @@ def main() -> None:
     config_name = sys.argv[1]
 
     # --- Same QuantManager, different method: get_raw_config ---
-    QM = QuantManager(configs)
     yaml_str = QM.get_raw_config(config_name)
 
     print(f"\n--- {config_name} (resolved) ---")

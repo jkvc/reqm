@@ -85,13 +85,20 @@ model_name: gpt-4o
 max_tokens: 512
 ```
 
-`QuantManager` takes the config module and gives you a uniform API:
+`QuantManager` takes the config module and gives you a uniform API. Construct it once in the `__init__.py` next to your configs directory, then import `QM` everywhere:
 
 ```python
-import my_configs
+# myproject/__init__.py (next to configs/)
+import myproject.configs as configs
 from reqm import QuantManager
 
-QM = QuantManager(my_configs)
+QM = QuantManager(configs)
+```
+
+```python
+# Any call site — notebook, script, service, test
+from myproject import QM
+
 QM.list_configs()          # ["serving/prod", "summarizer_fast", "summarizer_prod"]
 QM.validate()              # check all configs have # @package _global_
 cfg = QM.get_config("summarizer_prod")   # resolved OmegaConf DictConfig
@@ -115,12 +122,22 @@ weight: 0.6
 
 The core value proposition: ONE script, swap the config name, get different experimental results. No code changes, no if/else chains, no factory functions.
 
+Construct `QM` once in the `__init__.py` right next to your configs directory:
+
 ```python
-import sys
-import my_configs
+# myproject/__init__.py (lives next to configs/)
+import myproject.configs as configs
 from reqm import QuantManager
 
-QM = QuantManager(my_configs)
+QM = QuantManager(configs)
+```
+
+Then every script just imports it:
+
+```python
+import sys
+from myproject import QM
+
 model = QM.build(sys.argv[1])       # <-- only this string changes
 result = model(text="Hello world")
 ```
@@ -135,7 +152,7 @@ python evaluate.py summarizer_experiment_v3
 
 ## Runnable example
 
-The repo includes a complete example project at `examples/estimators/` that demonstrates Quant subclasses, non-Quant configurable dependencies (Filters), Hydra config composition, and multiple scripts sharing the same uniform call site:
+The repo includes a complete example project at `examples/estimators/` that demonstrates Quant subclasses, non-Quant configurable dependencies (Filters), Hydra config composition, and multiple scripts sharing a single `QM` instance defined in `examples/estimators/__init__.py`:
 
 ```bash
 # Evaluate a single estimator config

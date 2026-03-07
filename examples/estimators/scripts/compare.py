@@ -19,9 +19,8 @@ from __future__ import annotations
 
 import sys
 
-import examples.estimators.configs as configs
+from examples.estimators import QM
 from examples.estimators.datasets import DATASETS
-from reqm import QuantManager
 
 
 def compute_mse(estimator: object, datasets: list[dict]) -> float:
@@ -39,7 +38,6 @@ def main() -> None:
             " <config1> <config2> [...]"
         )
         print("\nAvailable configs:")
-        QM = QuantManager(configs)
         for name in QM.list_configs():
             if not name.startswith("filters/"):
                 print(f"  {name}")
@@ -48,7 +46,6 @@ def main() -> None:
     config_names = sys.argv[1:]
 
     # --- Build all estimators from their configs ---
-    QM = QuantManager(configs)
     results: list[tuple[str, float]] = []
     for name in config_names:
         estimator = QM.build(name)

@@ -176,24 +176,24 @@ my_configs/
     └── staging.yaml
 ```
 
-Usage:
+Construct `QM` once in the `__init__.py` next to the configs directory, then
+import it from any call site:
 
 ```python
-import my_configs
+# myproject/__init__.py (next to configs/)
+import myproject.configs as configs
 from reqm import QuantManager
 
-QM = QuantManager(my_configs)
+QM = QuantManager(configs)
+```
 
-# List available configs
+```python
+# Any call site
+from myproject import QM
+
 QM.list_configs()   # ["model_a", "model_b", "serving/prod", "serving/staging"]
-
-# Load a config
 cfg = QM.get_config("model_a")
-
-# Build an object
 model = QM.build("model_a")
-
-# Validate all configs
 QM.validate()
 ```
 

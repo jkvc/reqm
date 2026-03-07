@@ -64,13 +64,21 @@ with a clear error, not silently in production.
 
 ### QuantManager
 Directory-based config manager. Takes an importable Python module containing
-YAML config files and provides a uniform API:
+YAML config files and provides a uniform API. Construct it once in the
+`__init__.py` next to your configs directory, then import `QM` everywhere:
 
 ```python
-import my_configs
+# myproject/__init__.py (next to configs/)
+import myproject.configs as configs
 from reqm import QuantManager
 
-QM = QuantManager(my_configs)
+QM = QuantManager(configs)
+```
+
+```python
+# Any call site
+from myproject import QM
+
 QM.list_configs()                      # ["model_a", "serving/prod"]
 QM.validate()                          # check all configs have @package _global_
 cfg = QM.get_config("model_a")         # resolved OmegaConf DictConfig
@@ -106,14 +114,13 @@ weight: 0.6
 ## The uniform call site pattern
 
 The core value proposition: ONE script, swap the config name, get different
-experimental results. No code changes needed.
+experimental results. No code changes needed. `QM` is constructed once in
+your package `__init__.py` and imported by every script:
 
 ```python
 import sys
-import my_configs
-from reqm import QuantManager
+from myproject import QM
 
-QM = QuantManager(my_configs)
 model = QM.build(sys.argv[1])       # <-- only this string changes
 result = model(text="Hello world")
 ```
@@ -128,7 +135,7 @@ python evaluate.py summarizer_experiment_v3
 
 The repo includes a complete example project at `examples/estimators/` that
 demonstrates Quant subclasses, non-Quant configurable dependencies (Filters),
-Hydra config composition, and a uniform evaluation script:
+Hydra config composition, and a single `QM` instance shared across scripts:
 
 ```bash
 uv run python -m examples.estimators.scripts.evaluate mean_simple
@@ -146,7 +153,7 @@ from reqm import Quant, QuantManager, ConfigValidationError
 # Define your Quant
 class MyQuant(Quant): ...
 
-# Manage configs and build objects
+# Construct once in __init__.py next to configs/
 QM = QuantManager(config_module)
 QM.list_configs() -> list[str]
 QM.validate(config_name=None) -> None
