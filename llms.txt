@@ -162,6 +162,49 @@ QM.get_raw_config(config_name, *, config_overrides=None, param_overrides=None) -
 QM.build(config_name, *, config_overrides=None, param_overrides=None) -> object
 ```
 
+## PyTorch integration (TorchQuant)
+
+reqm does not depend on PyTorch, but its primary use case is config-driven
+model experimentation with `nn.Module`. The problem: `nn.Module.__call__`
+runs hooks and calls `forward()` — if you override `__call__` (as plain
+Quant requires), you bypass PyTorch's machinery.
+
+The solution is `TorchQuant`, a bridge class in `examples/torch_models/torch_quant.py`.
+Copy it into your project:
+
+```python
+# In your project (copied from examples/torch_models/torch_quant.py)
+class TorchQuant(nn.Module, Quant):
+    @override
+    def __call__(self, **kwargs):
+        return nn.Module.__call__(self, **kwargs)  # preserves hooks
+
+    @abstractmethod
+    @allow_any_override
+    def forward(self, **kwargs): ...  # subclasses override this
+```
+
+Usage — subclass TorchQuant, override `forward()` (not `__call__`):
+
+```python
+class MyModel(TorchQuant):
+    def __init__(self, hidden_dim: int):
+        super().__init__()
+        self.linear = nn.Linear(hidden_dim, 1)
+
+    @override
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.linear(x)
+
+    @override
+    def dummy_inputs(self) -> list[dict]:
+        return [{"x": torch.randn(4, hidden_dim)}]
+```
+
+Everything works: hooks fire, gradients flow, `state_dict()` works,
+`dummy_inputs()` audits the model at build time. See `docs/torch_integration.md`
+for the full explanation.
+
 ## Why not just Hydra?
 
 Hydra is framework-first — it expects to own your program's entry point.
