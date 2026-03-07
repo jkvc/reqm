@@ -233,6 +233,20 @@ Hydra is framework-first. It expects to own your program's entry point. `reqm` i
 
 ---
 
+## Publishing
+
+To release a new version to PyPI:
+
+1. Bump the version in `pyproject.toml`
+2. Build and publish:
+
+```bash
+uv build
+uv publish --token pypi-YOUR_TOKEN
+```
+
+---
+
 ## Name
 
 `reqm` is also a nod to [Rue Esquermoise](https://en.wikipedia.org/wiki/Rue_Esquermoise), one of the oldest streets in Lille, France, dating to the 13th century. Its etymology traces to the Flemish *eskelm* — "frontier." A fitting name for a library that sits at the frontier between research and production.
