@@ -5,6 +5,7 @@
 Directory-based config management and object factory built on [Hydra](https://hydra.cc).
 
 [![PyPI](https://img.shields.io/pypi/v/reqm)](https://pypi.org/project/reqm/)
+[![CI](https://github.com/jkvc/reqm/actions/workflows/ci.yml/badge.svg)](https://github.com/jkvc/reqm/actions/workflows/ci.yml)
 
 ## Install
 
