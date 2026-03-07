@@ -4,6 +4,14 @@
 
 Directory-based config management and object factory built on [Hydra](https://hydra.cc).
 
+[![PyPI](https://img.shields.io/pypi/v/reqm)](https://pypi.org/project/reqm/)
+
+## Install
+
+```bash
+pip install reqm
+```
+
 ---
 
 ## The problem
