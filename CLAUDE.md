@@ -170,6 +170,12 @@ examples/
         ├── filters/     # filter configs (non-Quant)
         ├── *.yaml       # estimator configs (compose filters via defaults)
         └── ensemble/    # ensemble configs (compose estimators via defaults)
+└── torch_models/        # PyTorch integration example (requires torch)
+    ├── __init__.py      # QM = QuantManager(configs)
+    ├── torch_quant.py   # TorchQuant bridge (copy into your project)
+    ├── models/          # Regressor(TorchQuant) subclasses
+    ├── configs/         # model configs
+    └── scripts/         # evaluate.py, audit.py
 ```
 
 ---

@@ -1,0 +1,3 @@
+# @package _global_
+_target_: examples.torch_models.models.linear.LinearRegressor
+in_features: 4

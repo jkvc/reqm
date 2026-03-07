@@ -173,6 +173,37 @@ uv run python -m examples.estimators.scripts.sweep
 
 ---
 
+## PyTorch integration
+
+reqm does not depend on PyTorch, but its primary use case is config-driven model experimentation with `nn.Module`. The repo includes a `TorchQuant` bridge class that resolves the `__call__` vs `forward()` conflict — subclass it instead of plain `Quant` when your model is an `nn.Module`:
+
+```python
+from myproject.torch_quant import TorchQuant  # copy from examples/
+
+class MyModel(TorchQuant):
+    def __init__(self, hidden_dim: int):
+        super().__init__()
+        self.linear = nn.Linear(hidden_dim, 1)
+
+    @override
+    def forward(self, x: torch.Tensor) -> torch.Tensor:  # override forward, not __call__
+        return self.linear(x)
+
+    @override
+    def dummy_inputs(self) -> list[dict]:
+        return [{"x": torch.randn(4, hidden_dim)}]
+```
+
+See `docs/torch_integration.md` for the full explanation, and `examples/torch_models/` for a runnable example:
+
+```bash
+uv run python -m examples.torch_models.scripts.evaluate linear_simple
+uv run python -m examples.torch_models.scripts.evaluate mlp_small
+uv run python -m examples.torch_models.scripts.audit
+```
+
+---
+
 ## Why not just Hydra?
 
 Hydra is framework-first. It expects to own your program's entry point. `reqm` is library-first — it has no opinion about your application structure and works wherever Python runs.
