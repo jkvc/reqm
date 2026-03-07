@@ -169,19 +169,55 @@ model experimentation with `nn.Module`. The problem: `nn.Module.__call__`
 runs hooks and calls `forward()` — if you override `__call__` (as plain
 Quant requires), you bypass PyTorch's machinery.
 
-The solution is `TorchQuant`, a bridge class in `examples/torch_models/torch_quant.py`.
-Copy it into your project:
+The solution is `TorchQuant`, a bridge class. **Copy it into your project**
+(full source below — this is the canonical reference):
 
 ```python
-# In your project (copied from examples/torch_models/torch_quant.py)
-class TorchQuant(nn.Module, Quant):
-    @override
-    def __call__(self, **kwargs):
-        return nn.Module.__call__(self, **kwargs)  # preserves hooks
+"""TorchQuant — bridge between nn.Module and Quant.
 
-    @abstractmethod
+Copy this file into your project. reqm does not depend on PyTorch,
+so this class is not part of the reqm package.
+"""
+
+from __future__ import annotations
+
+import abc
+
+import torch.nn as nn
+
+from reqm import Quant
+from reqm.overrides_ext import allow_any_override, override
+
+
+class TorchQuant(nn.Module, Quant):
+    """Base class for Quants that are also PyTorch modules.
+
+    Subclasses override forward() (not __call__) to define computation,
+    just like any nn.Module. The dummy_inputs() contract from Quant still
+    applies — implement it so reqm can verify the model runs at build time.
+
+    Why this class exists:
+        nn.Module.__call__ runs forward/backward hooks, autograd profiling,
+        then calls self.forward(). Overriding __call__ directly (as plain
+        Quant requires) bypasses all of that. TorchQuant resolves this by:
+
+        1. Providing a concrete __call__ that delegates to nn.Module.__call__
+           (preserving hooks)
+        2. Making forward() the abstract method with @allow_any_override so
+           subclasses can narrow its signature freely
+    """
+
+    @override
+    def __call__(self, **kwargs: object) -> object:
+        """Delegate to nn.Module.__call__, preserving hooks and autograd."""
+        return nn.Module.__call__(self, **kwargs)
+
+    @override
+    @abc.abstractmethod
     @allow_any_override
-    def forward(self, **kwargs): ...  # subclasses override this
+    def forward(self, **kwargs: object) -> object:
+        """Define the model's computation. Subclasses override this."""
+        ...
 ```
 
 Usage — subclass TorchQuant, override `forward()` (not `__call__`):
@@ -202,8 +238,10 @@ class MyModel(TorchQuant):
 ```
 
 Everything works: hooks fire, gradients flow, `state_dict()` works,
-`dummy_inputs()` audits the model at build time. See `docs/torch_integration.md`
-for the full explanation.
+`dummy_inputs()` audits the model at build time.
+
+For the full working example project (models, configs, scripts), see
+https://github.com/jkvc/reqm/tree/main/examples/torch_models
 
 ## Why not just Hydra?
 
