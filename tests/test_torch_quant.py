@@ -13,6 +13,7 @@ torch = pytest.importorskip("torch")
 nn = torch.nn
 
 # Import TorchQuant from examples (it's a recipe, not part of the package)
+from examples.torch_models.models.api import Regressor  # noqa: E402
 from examples.torch_models.torch_quant import TorchQuant  # noqa: E402
 
 from reqm.overrides_ext import override  # noqa: E402
@@ -245,8 +246,6 @@ def test_mro_requires_forward_even_though_call_is_satisfied():
 def test_regressor_subclass_cannot_use_wrong_forward_signature():
     """Regressor locks forward to (self, x: Tensor). A subclass that tries
     a different signature should be rejected by EnforceOverrides."""
-    from examples.torch_models.models.api import Regressor
-
     with pytest.raises(TypeError):
 
         class BadRegressor(Regressor):
@@ -260,6 +259,43 @@ def test_regressor_subclass_cannot_use_wrong_forward_signature():
             @override
             def dummy_inputs(self) -> list[dict[str, object]]:
                 return [{"a": torch.randn(2), "b": torch.randn(2)}]
+
+
+def test_regressor_subclass_cannot_add_required_param_to_forward():
+    """Adding a required (no default) parameter to forward is rejected."""
+    with pytest.raises(TypeError):
+
+        class BadRegressor(Regressor):
+            def __init__(self):
+                super().__init__()
+                self.in_features = 4
+
+            @override
+            def forward(self, x: torch.Tensor, k: int) -> torch.Tensor:
+                return x * k
+
+
+def test_regressor_subclass_can_add_optional_param_to_forward():
+    """Adding a parameter with a default value is LSP-compatible and allowed."""
+
+    class ExtendedRegressor(Regressor):
+        def __init__(self):
+            super().__init__()
+            self.in_features = 4
+            self.linear = nn.Linear(4, 1)
+
+        @override
+        def forward(self, x: torch.Tensor, scale: float = 1.0) -> torch.Tensor:
+            return self.linear(x) * scale
+
+    model = ExtendedRegressor()
+    x = torch.randn(2, 4)
+    # Works with parent's signature
+    out1 = model(x=x)
+    assert out1.shape == (2, 1)
+    # Also works with the extra optional param
+    out2 = model(x=x, scale=2.0)
+    assert out2.shape == (2, 1)
 
 
 # ---------------------------------------------------------------------------
